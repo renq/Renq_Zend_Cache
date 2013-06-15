@@ -33,7 +33,6 @@ class SimqelDatabase extends AbstractAdapter implements
 	public function __construct($options = null)
 	{
 		parent::__construct($options);
-		$this->_connect();
 	}
 
 	public function setOptions($options)
@@ -42,7 +41,9 @@ class SimqelDatabase extends AbstractAdapter implements
 			$options = new SimqelDatabaseOptions($options);
 		}
 
-		return parent::setOptions($options);
+		$options = parent::setOptions($options);
+		$this->_connect();
+		return $options;
 	}
 
 	private function _connect()
@@ -50,13 +51,18 @@ class SimqelDatabase extends AbstractAdapter implements
 		$options = $this->getOptions();
 		ErrorHandler::start();
 		$this->_simqel = Simqel::createByDSN($options->getDsn());
+		try {
+			$this->_simqel->get("SELECT * FROM cache", array(), 1, 0);
+		}
+		catch (\Exception $e) {
+			$this->createDatabase();
+		}
 		$err = ErrorHandler::stop();
 	}
 
 	protected function internalGetItem(& $normalizedKey, & $success = null, & $casToken = null)
 	{
 		$result = $this->_simqel->value("SELECT value FROM cache WHERE key = ?", array($normalizedKey));
-		//var_dump($normalizedKey, $result);
 		if ($result !== false) {
 			$success = true;
 			return $result;
