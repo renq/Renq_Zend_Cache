@@ -29,6 +29,7 @@ class SimqelDatabase extends AbstractAdapter implements
 {
 
 	private $_simqel;
+	private $_prefix = 'cache_';
 
 	public function __construct($options = null)
 	{
@@ -49,10 +50,11 @@ class SimqelDatabase extends AbstractAdapter implements
 	private function _connect()
 	{
 		$options = $this->getOptions();
+		$this->_prefix = $options->getTablePrefix();
 		ErrorHandler::start();
 		$this->_simqel = Simqel::createByDSN($options->getDsn());
 		try {
-			$this->_simqel->get("SELECT * FROM cache", array(), 1, 0);
+			$this->_simqel->get("SELECT * FROM {$this->_prefix}cache", array(), 1, 0);
 		}
 		catch (\Exception $e) {
 			$this->createDatabase();
@@ -62,7 +64,7 @@ class SimqelDatabase extends AbstractAdapter implements
 
 	protected function internalGetItem(& $normalizedKey, & $success = null, & $casToken = null)
 	{
-		$result = $this->_simqel->value("SELECT value FROM cache WHERE key = ?", array($normalizedKey));
+		$result = $this->_simqel->value("SELECT value FROM {$this->_prefix}cache WHERE key = ?", array($normalizedKey));
 		if ($result !== false) {
 			$success = true;
 			return $result;
@@ -80,12 +82,12 @@ class SimqelDatabase extends AbstractAdapter implements
 			'key' => $normalizedKey,
 			'value' => $value,
 		);
-		$this->_simqel->save('cache', $params);
+		$this->_simqel->save("{$this->_prefix}cache", $params);
 	}
 
 	protected function internalRemoveItem(& $normalizedKey)
 	{
-		$this->_simqel->delete('cache', $normalizedKey, 'key');
+		$this->_simqel->delete("{$this->_prefix}cache", $normalizedKey, 'key');
 	}
 
 	public function flush()
@@ -96,7 +98,7 @@ class SimqelDatabase extends AbstractAdapter implements
 	public function setTags($key, array $tags)
 	{
 		foreach ($tags as $tag) {
-			$this->_simqel->save('tags', array(
+			$this->_simqel->save("{$this->_prefix}tags", array(
 				'tag' => $tag,
 				'key' => $key
 			));
@@ -105,7 +107,7 @@ class SimqelDatabase extends AbstractAdapter implements
 
 	public function getTags($key)
 	{
-		return $this->_simqel->flat("SELECT tag FROM tags WHERE key = ?", array($key));
+		return $this->_simqel->flat("SELECT tag FROM {$this->_prefix}tags WHERE key = ?", array($key));
 	}
 
 	/**
@@ -126,43 +128,46 @@ class SimqelDatabase extends AbstractAdapter implements
 
 		if ($disjunction) {
 			$this->_simqel->query(
-				"DELETE FROM cache WHERE key IN (SELECT key FROM tags WHERE tag IN ?)",
+				"DELETE FROM {$this->_prefix}cache WHERE key IN (SELECT key FROM {$this->_prefix}tags WHERE tag IN ?)",
 				array($tags)
 			);
-			$this->_simqel->query("DELETE FROM tags WHERE tag IN ?", array($tags));
+			$this->_simqel->query("DELETE FROM {$this->_prefix}tags WHERE tag IN ?", array($tags));
 		}
 		else {
 			$count = count($tags);
 			$keys = $this->_simqel->flat("
 				SELECT c.key
-				FROM cache c
-				JOIN tags t ON c.key = t.key
+				FROM {$this->_prefix}cache c
+				JOIN {$this->_prefix}tags t ON c.key = t.key
 				GROUP BY c.key
 				HAVING COUNT(t.tag) == $count"
 			);
 			if (!empty($keys)) {
-				$this->_simqel->query("DELETE FROM cache WHERE key IN ?", array($keys));
-				$this->_simqel->query("DELETE FROM tags WHERE key IN ?", array($keys));
+				$this->_simqel->query("DELETE FROM {$this->_prefix}cache WHERE key IN ?", array($keys));
+				$this->_simqel->query("DELETE FROM {$this->_prefix}tags WHERE key IN ?", array($keys));
 			}
 		}
 	}
 
 	public function createDatabase()
 	{
-		$this->_simqel->query('DROP TABLE IF EXISTS cache');
+		$this->_simqel->query("DROP TABLE IF EXISTS {$this->_prefix}cache");
 		$this->_simqel->query("
-			CREATE TABLE cache (
+			CREATE TABLE {$this->_prefix}cache (
 				key TEXT NOT NULL PRIMARY KEY,
 				value TEXT
 			)");
-		$this->_simqel->query('DROP TABLE IF EXISTS tags');
+		$this->_simqel->query("DROP TABLE IF EXISTS {$this->_prefix}tags");
 		$this->_simqel->query("
-			CREATE TABLE tags (
+			CREATE TABLE {$this->_prefix}tags (
 				tag TEXT NOT NULL,
 				key TEXT NOT NULL
 			)");
-		$this->_simqel->query('CREATE INDEX "tags_tag_index" on tags (tag ASC)');
-		$this->_simqel->query('CREATE INDEX "tags_key_index" on tags (key ASC)');
+
+		$this->_simqel->query("DROP INDEX IF EXISTS \"tags_tag_index\"");
+		$this->_simqel->query("CREATE INDEX \"tags_tag_index\" on {$this->_prefix}tags (tag ASC)");
+		$this->_simqel->query("DROP INDEX IF EXISTS \"tags_key_index\"");
+		$this->_simqel->query("CREATE INDEX \"tags_key_index\" on {$this->_prefix}tags (key ASC)");
 	}
 
 }

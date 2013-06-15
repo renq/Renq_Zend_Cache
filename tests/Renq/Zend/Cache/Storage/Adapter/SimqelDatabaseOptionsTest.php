@@ -15,18 +15,14 @@ class SimqelDatabaseOptionsTest extends \PHPUnit_Framework_TestCase
 		));
 	}
 
-	public function testDsn()
+	public function testOptions()
 	{
 		$dsn = 'sqlite:///tmp/filename.sql';
 		$options = new SimqelDatabaseOptions(array(
-			'dsn' => $dsn
+			'dsn' => $dsn,
+			'table_prefix' => 'cache_',
 		));
 		$this->assertEquals($dsn, $options->getDsn());
-	}
-
-	public function testSetItem()
-	{
-
 	}
 
 }

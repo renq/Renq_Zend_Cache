@@ -19,13 +19,9 @@ use Zend\Cache\Storage\Adapter\AdapterOptions;
 class SimqelDatabaseOptions extends AdapterOptions
 {
 
-    /**
-     * Directory to store cache files
-     *
-     * @var null|string The cache directory
-     *                  or NULL for the systems temporary directory
-     */
     protected $dsn = null;
+
+    protected $prefix = '';
 
     /**
      * Constructor
@@ -39,13 +35,6 @@ class SimqelDatabaseOptions extends AdapterOptions
         parent::__construct($options);
     }
 
-    /**
-     * Set cache dir
-     *
-     * @param  string $cacheDir
-     * @return FilesystemOptions
-     * @throws Exception\InvalidArgumentException
-     */
     public function setDsn($dsn)
     {
         $this->triggerOptionEvent('dsn', $dsn);
@@ -53,13 +42,20 @@ class SimqelDatabaseOptions extends AdapterOptions
         return $this;
     }
 
-    /**
-     * Get cache dir
-     *
-     * @return null|string
-     */
     public function getDsn()
     {
-        return $this->dsn;
+    	return $this->dsn;
+    }
+
+    public function setTablePrefix($prefix)
+    {
+    	$this->triggerOptionEvent('prefix', $prefix);
+    	$this->prefix = $prefix;
+    	return $this;
+    }
+
+    public function getTablePrefix()
+    {
+        return $this->prefix;
     }
 }
