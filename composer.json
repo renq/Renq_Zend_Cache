@@ -1,5 +1,5 @@
 {
-	"name" : "gsub/renq_zend_cache",
+	"name" : "renq/zend_cache",
 	"type" : "library",
 	"authors" : [{
 			"name" : "Michał Lipek",

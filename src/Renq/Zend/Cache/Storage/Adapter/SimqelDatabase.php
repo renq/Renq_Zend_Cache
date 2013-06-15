@@ -36,6 +36,15 @@ class SimqelDatabase extends AbstractAdapter implements
 		$this->_connect();
 	}
 
+	public function setOptions($options)
+	{
+		if (!$options instanceof SimqelDatabaseOptions) {
+			$options = new SimqelDatabaseOptions($options);
+		}
+
+		return parent::setOptions($options);
+	}
+
 	private function _connect()
 	{
 		$options = $this->getOptions();
